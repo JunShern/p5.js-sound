@@ -15,8 +15,11 @@ var keyHeight = 40;
 
 function preload() {
   // Prepare key-note mappings
-  keyTable = loadTable('keymaps.csv', 'csv', x => {
-    keyTable.getColumn(0).forEach((key, index) => keyMap[key] = index);
+  keyTable = loadTable('keymaps.csv', 'csv', function(table) {
+    keynames = table.getColumn(0);
+    for (var i=0; i<keynames.length; i++) {
+      keyMap[keynames[i]] = i;
+    }
   });
   // Names of all possible soundfont instruments
   instNames = loadJSON('instrument_names.json');
@@ -35,9 +38,11 @@ function setup() {
 
   instSelector = select('#inst-select');
   for (var index in instNames) {
-    instSelector.option(instNames[index]);
+    instSelector.option(instNames[index]); // Add options to dropdown
   }
-  instSelector.changed(_ => sfSynth = new SoundfontSynth(instSelector.value()));
+  instSelector.changed(function() {
+    sfSynth = new SoundfontSynth(instSelector.value());
+  });
   instSelector.value('acoustic_grand_piano'); // Default piano
 
   // Drawing
@@ -101,7 +106,6 @@ function keyPressed() {
   if (key in keyMap) {
     midiNoteNumber = baseNote + keyMap[key]; // 0-127; 60 is Middle C (C4)
     velocity = 0.8; // From 0-1
-    duration = 0.5; // Seconds
 
     if (voiceTypeSelector.value() === 'template') {
       sfSynth.noteAttack(midiNoteNumber, velocity, 0);
