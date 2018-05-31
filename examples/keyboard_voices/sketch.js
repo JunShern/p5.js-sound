@@ -104,9 +104,22 @@ function keyPressed() {
     duration = 0.5; // Seconds
 
     if (voiceTypeSelector.value() === 'template') {
-      sfSynth.play(midiNoteNumber, velocity, 0, duration);
+      sfSynth.noteAttack(midiNoteNumber, velocity, 0);
     } else {
-      polySynth.play(midiToFreq(midiNoteNumber), velocity, 0, duration);
+      polySynth.noteAttack(midiToFreq(midiNoteNumber), velocity, 0);
+    }
+  }
+}
+
+function keyReleased() {
+  // Check if valid note key pressed
+  if (key in keyMap) {
+    midiNoteNumber = baseNote + keyMap[key]; // 0-127; 60 is Middle C (C4)
+   
+    if (voiceTypeSelector.value() === 'template') {
+      sfSynth.noteRelease(midiNoteNumber, 0);
+    } else {
+      polySynth.noteRelease(midiToFreq(midiNoteNumber), 0);
     }
   }
 }
@@ -116,14 +129,29 @@ function keyPressed() {
 SoundfontSynth = function(soundfont = 'acoustic_grand_piano') {
   this.audioContext = getAudioContext();
   this.inst = Soundfont.instrument(this.audioContext, soundfont);
+  this.notes = {};
 };
 
 SoundfontSynth.prototype.play = function(note, velocity, secondsFromNow, duration) {
   this.inst.then(voice => {
-    voice
+    this.latest_note = voice
       .play(note, this.audioContext.currentTime + secondsFromNow, { 
         gain: velocity, 
         duration: duration
       });
   });
+}
+
+SoundfontSynth.prototype.noteAttack = function(note, velocity, secondsFromNow) {
+  this.inst.then(voice => {
+    this.notes[note] = voice
+      .play(note, this.audioContext.currentTime + secondsFromNow, { 
+        gain: velocity,
+        loop: true // Need to set loopStart and loopEnd for smoother looping
+      });
+  });
+}
+
+SoundfontSynth.prototype.noteRelease = function(note, secondsFromNow) {
+  this.notes[note].stop(this.audioContext.currentTime);
 }
